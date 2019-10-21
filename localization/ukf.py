@@ -8,8 +8,7 @@ def unwrap(phi):
 
 
 class UKF:
-    def __init__(self, t):
-        self.dt = t
+    def __init__(self):
 
         self.wm = np.zeros(2 * params.n + 1)
         self.wc = np.zeros_like(self.wm)
@@ -20,34 +19,30 @@ class UKF:
         self.wm[1:] = 1.0 / (2 * (params.n + params.lamb))
         self.wc[1:] = 1.0 / (2 * (params.n + params.lamb))
 
-    def propagateState(self, state, v, w):
+    def propagateState(self, state, v, w, dt):
         theta = state[2]
         st = np.sin(theta)
-        stw = np.sin(theta + w * self.dt)
         ct = np.cos(theta)
-        ctw = np.cos(theta + w * self.dt)
 
-        A = np.array([-v/w * st + v/w * stw,
-                    v/w * ct - v/w * ctw,
-                    w * self.dt])
-        temp = state + A
+        A = np.array([v * ct,
+                    v * st,
+                    w])
+        temp = state + A * dt
         temp[2] = unwrap(temp[2])
         return temp
 
-    def propagateSigmaPts(self, Chi_x, Chi_u, v, w):
+    def propagateSigmaPts(self, Chi_x, Chi_u, v, w, dt):
         theta = Chi_x[2,:]
         v = v + Chi_u[0,:]
         w = w + Chi_u[1,:]
 
         st = np.sin(theta)
-        stw = np.sin(theta + w * self.dt)
         ct = np.cos(theta)
-        ctw = np.cos(theta + w * self.dt)
 
-        A = np.array([-v/w * st + v/w * stw,
-                     v/w * ct - v/w * ctw,
-                     w * self.dt])
-        Chi_bar = Chi_x + A
+        A = np.array([v * ct,
+                     v * st,
+                     w])
+        Chi_bar = Chi_x + A * dt
 
         return Chi_bar
 
@@ -96,7 +91,7 @@ class UKF:
 
 
     def augmentState(self, mu, Sigma, v, w):
-        M = np.diag([params.alpha1 * v**2 + params.alpha2 * w**2, params.alpha3 * v**2 + params.alpha4 * w**2])
+        M = np.diag([params.alpha1 * v**2 + params.alpha2 * w**2, params.alpha3 * v**2 + params.alpha4 * w**2]) # NOTE: This will change with unicycle model
         Q = np.diag([params.sigma_r**2, params.sigma_theta**2])
 
         mu_a = np.concatenate((mu, np.zeros(4)))

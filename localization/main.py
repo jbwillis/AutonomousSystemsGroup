@@ -5,51 +5,22 @@ import scipy.io as sio
 from ukf import UKF
 from ukf import unwrap
 
-def generateVelocities(t):
-    v = 1 + .5 * np.cos(2 * np.pi * 0.3 * t) #1 + .5 * np.cos(2 * np.pi * 0.2 * t)
-    w = -0.2 + 2 * np.cos(2 * np.pi * 1.0 * t) # -0.2 + 2 * np.cos(2 * np.pi * 0.6 * t)
-
-    return v, w
-
 def readFile():
-    data = sio.loadmat("hw3_4_soln_data.mat")
-    t = data["t"].flatten()
-    v = data["v"].flatten()
-    w = data["om"].flatten()
+    data = sio.loadmat("processed_data.mat")
+    truth_data = sio.loadmat('truth_data.mat')
 
-    return t, v, w
-
-def getMeasurements(state):
-    ds = params.lms - state[0:2].reshape((2,1))
-    r = np.sqrt(np.sum(ds**2, axis=0)) + np.random.normal(0, params.sigma_r, size=(params.lms.shape[1]))
-    theta = (np.arctan2(ds[1,:], ds[0,:]) - state[2]) + np.random.normal(0, params.sigma_theta, size=(params.lms.shape[1]))
-    theta = unwrap(theta)
-
-    z = np.array([[r.flatten()], [theta.flatten()]]).reshape((2,3))
-
-    return z
+    return  data, truth_data
 
 if __name__ == "__main__":
-    read_file = True
-    if read_file:
-        t, v, w = readFile()
-        vc, wc = generateVelocities(t)
-    else:
-        t = np.arange(0, params.tf, params.dt)
-        vc, wc = generateVelocities(t)
-        v = vc + np.sqrt(params.alpha1 * vc**2 + params.alpha2 * wc**2) * np.random.randn(vc.size)
-        w = wc + np.sqrt(params.alpha3 * vc**2 + params.alpha4 * wc**2) * np.random.randn(wc.size)
+    data, truth_data = readFile()
 
-    Car = CarAnimation()
-    ukf = UKF(params.dt)
+    ukf = UKF()
 
-    x_hist = []
+    x_hist = truth_data['x_truth']
+    y_hist = truth_data['y_truth']
+    theta_hist = truth_data['th_truth']
+    t_truth = truth_data['t_truth']
     mu_hist = []
-    err_hist = []
-    x_covar_hist = []
-    y_covar_hist = []
-    psi_covar_hist = []
-    K_hist = []
 
     x0 = params.x0
     y0 = params.y0
@@ -61,20 +32,11 @@ if __name__ == "__main__":
 
     for i in range(t.size):
         #stuff for plotting
-        x_hist.append(state)
         mu_hist.append(mu)
-        err = state - mu
-        err[2] = unwrap(err[2])
-        err_hist.append(err)
-        x_covar_hist.append(Sigma[0,0])
-        y_covar_hist.append(Sigma[1,1])
-        psi_covar_hist.append(Sigma[2,2])
 
-        Car.animateCar(state, mu, dead_reckon)
         plt.pause(0.02)
 
         state = ukf.propagateState(state, v[i], w[i])
-        zt = getMeasurements(state)
         mu, Sigma, K = ukf.update(mu, Sigma, zt, vc[i], wc[i])
         dead_reckon = ukf.propagateState(dead_reckon, vc[i], wc[i])
 
@@ -98,40 +60,40 @@ if __name__ == "__main__":
     ax1[2].legend()
     ax1[0].set_title("Estimate vs Truth")
 
-    fig2, ax2 = plt.subplots(nrows=3, ncols=1, sharex=True)
-    err_hist = np.array(err_hist).T
-    x_err_bnd = np.sqrt(np.array(x_covar_hist)) * 2
-    y_err_bnd = np.sqrt(np.array(y_covar_hist)) * 2
-    psi_err_bnd = np.sqrt(np.array(psi_covar_hist)) * 2
-    ax2[0].plot(t, err_hist[0,:], label="Err")
-    ax2[0].plot(t, x_err_bnd, 'r', label="2 $\sigma$")
-    ax2[0].plot(t, -x_err_bnd, 'r')
-    ax2[0].set_ylabel("Err (m)")
-    ax2[0].legend()
-    ax2[1].plot(t, err_hist[1,:], label="Err")
-    ax2[1].plot(t, y_err_bnd, 'r', label="2 $\sigma$")
-    ax2[1].plot(t, -y_err_bnd, 'r')
-    ax2[1].set_ylabel("Err (m)")
-    ax2[1].legend()
-    ax2[2].plot(t, err_hist[2,:], label="Err")
-    ax2[2].plot(t, psi_err_bnd, 'r', label="2 $\sigma$")
-    ax2[2].plot(t, -psi_err_bnd, 'r')
-    ax2[2].set_ylabel("Err (m)")
-    ax2[2].set_xlabel("Time (s)")
-    ax2[2].legend()
-    ax2[0].set_title("Error vs Time")
+    # fig2, ax2 = plt.subplots(nrows=3, ncols=1, sharex=True)
+    # err_hist = np.array(err_hist).T
+    # x_err_bnd = np.sqrt(np.array(x_covar_hist)) * 2
+    # y_err_bnd = np.sqrt(np.array(y_covar_hist)) * 2
+    # psi_err_bnd = np.sqrt(np.array(psi_covar_hist)) * 2
+    # ax2[0].plot(t, err_hist[0,:], label="Err")
+    # ax2[0].plot(t, x_err_bnd, 'r', label="2 $\sigma$")
+    # ax2[0].plot(t, -x_err_bnd, 'r')
+    # ax2[0].set_ylabel("Err (m)")
+    # ax2[0].legend()
+    # ax2[1].plot(t, err_hist[1,:], label="Err")
+    # ax2[1].plot(t, y_err_bnd, 'r', label="2 $\sigma$")
+    # ax2[1].plot(t, -y_err_bnd, 'r')
+    # ax2[1].set_ylabel("Err (m)")
+    # ax2[1].legend()
+    # ax2[2].plot(t, err_hist[2,:], label="Err")
+    # ax2[2].plot(t, psi_err_bnd, 'r', label="2 $\sigma$")
+    # ax2[2].plot(t, -psi_err_bnd, 'r')
+    # ax2[2].set_ylabel("Err (m)")
+    # ax2[2].set_xlabel("Time (s)")
+    # ax2[2].legend()
+    # ax2[0].set_title("Error vs Time")
 
-    plt.figure(4)
-    K_hist = np.array(K_hist)
-    plt.plot(t, K_hist[:,0,0])
-    plt.plot(t, K_hist[:,1,0])
-    plt.plot(t, K_hist[:,2,0])
-    plt.plot(t, K_hist[:,0,1])
-    plt.plot(t, K_hist[:,1,1])
-    plt.plot(t, K_hist[:,2,1])
-    plt.xlabel("Time (s)")
-    plt.ylabel("Kalman Gain")
-    plt.title("Kalman Gain vs Time")
+    # plt.figure(4)
+    # K_hist = np.array(K_hist)
+    # plt.plot(t, K_hist[:,0,0])
+    # plt.plot(t, K_hist[:,1,0])
+    # plt.plot(t, K_hist[:,2,0])
+    # plt.plot(t, K_hist[:,0,1])
+    # plt.plot(t, K_hist[:,1,1])
+    # plt.plot(t, K_hist[:,2,1])
+    # plt.xlabel("Time (s)")
+    # plt.ylabel("Kalman Gain")
+    # plt.title("Kalman Gain vs Time")
 
     plt.show()
     print("Finished")
