@@ -40,27 +40,27 @@ if __name__ == "__main__":
         lm_ind = np.argwhere(np.isfinite(l_depth[:,meas_index]))
         r = l_depth[lm_ind, meas_index]
         phi = l_bearing[lm_ind, meas_index]
-        zt = np.vstack((r, phi))
+        zt = np.hstack((r, phi)).T
 
         mu, Sigma, K = ukf.update(mu, Sigma, zt, lm_ind, vel_odom[0,i], vel_odom[1,i], dt)
 
-    # fig1, ax1 = plt.subplots(nrows=3, ncols=1, sharex=True)
-    # x_hist = np.array(x_hist).T
-    # mu_hist = np.array(mu_hist).T
-    # ax1[0].plot(t, x_hist[0,:], label="Truth")
-    # ax1[0].plot(t, mu_hist[0,:], label="Est")
-    # ax1[0].set_ylabel("x (m)")
-    # ax1[0].legend()
-    # ax1[1].plot(t, x_hist[1,:], label="Truth")
-    # ax1[1].plot(t, mu_hist[1,:], label="Est")
-    # ax1[1].set_ylabel("y (m)")
-    # ax1[1].legend()
-    # ax1[2].plot(t, x_hist[2,:], label="Truth")
-    # ax1[2].plot(t, mu_hist[2,:], label="Est")
-    # ax1[2].set_xlabel("Time (s)")
-    # ax1[2].set_ylabel("$\psi$ (rad)")
-    # ax1[2].legend()
-    # ax1[0].set_title("Estimate vs Truth")
+    fig1, ax1 = plt.subplots(nrows=3, ncols=1, sharex=True)
+    mu_hist = np.array(mu_hist).T
+    odom_t = odom_t.flatten()
+    ax1[0].plot(t_truth, x_truth, label="Truth")
+    ax1[0].plot(odom_t, mu_hist[0,:], label="Est")
+    ax1[0].set_ylabel("x (m)")
+    ax1[0].legend()
+    ax1[1].plot(t_truth, y_truth, label="Truth")
+    ax1[1].plot(odom_t, mu_hist[1,:], label="Est")
+    ax1[1].set_ylabel("y (m)")
+    ax1[1].legend()
+    ax1[2].plot(t_truth, th_truth, label="Truth")
+    ax1[2].plot(odom_t, mu_hist[2,:], label="Est")
+    ax1[2].set_xlabel("Time (s)")
+    ax1[2].set_ylabel("$\psi$ (rad)")
+    ax1[2].legend()
+    ax1[0].set_title("Estimate vs Truth")
 
     # fig2, ax2 = plt.subplots(nrows=3, ncols=1, sharex=True)
     # err_hist = np.array(err_hist).T

@@ -63,35 +63,41 @@ class UKF:
         Sigma_bar = np.sum(self.wc.reshape(2*params.n + 1, 1, 1) * np.einsum('ij, kj->jik', temp_x, temp_x), axis=0)
 
         #Measurement updates 
-        for i in range(z.shape[1]):
-            Z_bar = self.generateObservationSigmas(Chi_x_bar, Chi_a[5:, :], params.lms[:,i])
-            z_hat = np.sum(self.wm * Z_bar, axis=1)
-            temp_z = Z_bar - z_hat.reshape((2, 1))
-            temp_z[1,:] = unwrap(temp_z[1,:])
-        
-            S = np.sum(self.wc.reshape(2 * params.n + 1, 1, 1) * np.einsum('ij, kj->jik', temp_z, temp_z), axis=0)
-            Sigma_xz = np.sum(self.wc.reshape(2 * params.n+1, 1, 1) * np.einsum('ij, kj->jik', temp_x, temp_z), axis=0)
-        
-            #Calculate the kalman gain
-            K = Sigma_xz @ np.linalg.inv(S)
-            innov = z[:,i] - z_hat
-            innov[1] = unwrap(innov[1])
-            mu_bar = mu_bar + K @ (innov)
-            mu_bar[2] = unwrap(mu_bar[2])
-            Sigma_bar = Sigma_bar - K @ S @ K.T
+        K = np.zeros((3,2));
+        if lm_ind.size > 0:
+            for i in range(z.shape[1]):
+                Z_bar = self.generateObservationSigmas(Chi_x_bar, Chi_a[5:, :], lms[:,lm_ind.item(i)])
+                z_hat = np.sum(self.wm * Z_bar, axis=1)
+                temp_z = Z_bar - z_hat.reshape((2, 1))
+                temp_z[1,:] = unwrap(temp_z[1,:])
+            
+                S = np.sum(self.wc.reshape(2 * params.n + 1, 1, 1) * np.einsum('ij, kj->jik', temp_z, temp_z), axis=0)
+                Sigma_xz = np.sum(self.wc.reshape(2 * params.n+1, 1, 1) * np.einsum('ij, kj->jik', temp_x, temp_z), axis=0)
+            
+                #Calculate the kalman gain
+                K = Sigma_xz @ np.linalg.inv(S)
+                innov = z[:,i] - z_hat
+                innov[1] = unwrap(innov[1])
+                mu_bar = mu_bar + K @ (innov)
+                mu_bar[2] = unwrap(mu_bar[2])
+                Sigma_bar = Sigma_bar - K @ S @ K.T
 
-            #redraw sigma points (if not the last lm) and then reset stuff
-            if not i == (z.shape[1] - 1):
-                mu_a, Sig_a = self.augmentState(mu_bar, Sigma_bar, v, w)
-                L = sp.linalg.cholesky(Sig_a, lower=True)
-                Chi_a = self.generateSigmaPoints(mu_a, L)
-                Chi_x_bar = Chi_a[0:3,:]
-                temp_x = Chi_x_bar - mu_bar.reshape((3,1))
+                #redraw sigma points (if not the last lm) and then reset stuff
+                if not i == (z.shape[1] - 1):
+                    mu_a, Sig_a = self.augmentState(mu_bar, Sigma_bar, v, w)
+                    L = sp.linalg.cholesky(Sig_a, lower=True)
+                    Chi_a = self.generateSigmaPoints(mu_a, L)
+                    Chi_x_bar = Chi_a[0:3,:]
+                    temp_x = Chi_x_bar - mu_bar.reshape((3,1))
 
         return mu_bar, Sigma_bar, K
 
 
     def augmentState(self, mu, Sigma, v, w):
+        if v < .0001:
+            v = .0001
+        if w < .0001:
+            w = .0001
         M = np.diag([params.alpha1 * v**2 + params.alpha2 * w**2, params.alpha3 * v**2 + params.alpha4 * w**2]) # NOTE: This will change with unicycle model
         Q = np.diag([params.sigma_r**2, params.sigma_theta**2])
 
