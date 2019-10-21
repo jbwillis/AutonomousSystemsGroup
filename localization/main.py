@@ -42,7 +42,7 @@ if __name__ == "__main__":
         phi = l_bearing[lm_ind, meas_index]
         zt = np.vstack((r, phi))
 
-        mu, Sigma, K = ukf.update(mu, Sigma, zt, vel_odom[0,i], vel_odom[1,i], dt)
+        mu, Sigma, K = ukf.update(mu, Sigma, zt, lm_ind, vel_odom[0,i], vel_odom[1,i], dt)
 
     # fig1, ax1 = plt.subplots(nrows=3, ncols=1, sharex=True)
     # x_hist = np.array(x_hist).T
