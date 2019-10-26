@@ -31,7 +31,8 @@ if __name__ == "__main__":
         mu_hist.append(mu)
         dt = odom_t.item(i) - t_prev
         t_prev = odom_t.item(i)
-        truth = np.array([x_truth.item(i), y_truth.item(i), t_truth.item(i)]) #Need to find the truth with the closest time to current time
+        j = np.argmin(np.abs(t_truth - odom_t.item(i)))
+        truth = np.array([x_truth.item(j), y_truth.item(j), th_truth.item(j)]) #Need to find the truth with the closest time to current time
         err = truth - mu
         err_hist.append(err)
 
